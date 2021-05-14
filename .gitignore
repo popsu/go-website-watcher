@@ -1,0 +1,8 @@
+.terraform
+.envrc
+
+# Normally you would commit this lock file also, but the terraform files in this
+# repository are just to show how to set this up in terraform
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
