@@ -1,5 +1,8 @@
 .terraform
 .envrc
+ca.pem
+kafka_access.cert
+kafka_access.key
 
 # Normally you would commit this lock file also, but the terraform files in this
 # repository are just to show how to set this up in terraform
