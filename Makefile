@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := help
+MIGRATIONS_PATH = "sql/migrations"
 
 .PHONY: help
 help: ## This help
@@ -11,6 +12,26 @@ run-consumer: ## Run consumer
 .PHONY: run-producer
 run-producer: ## Run producer
 	go run ./producer/cmd/producer/
+
+.PHONY: test
+test: ## Run tests
+	go test -race -cover ./...
+
+.PHONY: tools
+tools: ## Install required tools (go-migrate)
+	go install -tags "postgres" github.com/golang-migrate/migrate/v4/cmd/migrate@v4.14.1
+
+.PHONY: db-migrate-up
+db-migrate-up: ## Run db migrations up
+	migrate -database ${GWW_DBURL} -path ${MIGRATIONS_PATH} up
+
+.PHONY: db-migrate-down
+db-migrate-down: ## Run db migrations down
+	migrate -database ${GWW_DBURL} -path ${MIGRATIONS_PATH} down
+
+.PHONY: generate-sql
+generate-sql: ## Generate sql from template in sql/migrations/templates
+	go run ./sql/migrations/templates > sql/migrations/001_create_initial_table.up.sql
 
 # terraform output -raw kafka_access_key > ../kafka_access.key
 

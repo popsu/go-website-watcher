@@ -1,4 +1,4 @@
-package pkg
+package kafka
 
 import (
 	"crypto/tls"

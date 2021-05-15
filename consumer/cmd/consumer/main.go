@@ -2,12 +2,19 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/popsu/go-website-watcher/pkg"
+	// sql query embedded from file
+	_ "embed"
+
+	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
+	gwwkafka "github.com/popsu/go-website-watcher/internal/kafka"
+	"github.com/popsu/go-website-watcher/internal/model"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -23,12 +30,15 @@ var (
 	serviceURI = os.Getenv("KAFKA_SERVICE_URI")
 )
 
+//go:embed sql/insert.sql
+var sqlQuery string
+
 func main() {
 	run()
 }
 
 func run() {
-	dialer, err := pkg.NewDialer(accessCert, accessKey, caPem)
+	dialer, err := gwwkafka.NewDialer(accessCert, accessKey, caPem)
 	if err != nil {
 		log.Fatalf("Error initializing dialer: %s", err)
 	}
@@ -54,5 +64,52 @@ func run() {
 
 		fmt.Printf("Message at topic: %v partition: %v offset: %v %s = %s\n",
 			m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
+
+		err = writeToDB(&m)
+		if err != nil {
+			log.Fatalf("Error: %s", err)
+		}
 	}
+}
+
+func writeToDB(m *kafka.Message) error {
+	ctx := context.Background()
+
+	dburl := os.Getenv("GWW_DBURL")
+
+	uuid, err := uuid.FromString(string(m.Key))
+	if err != nil {
+		return err
+	}
+
+	d := model.Message{}
+
+	err = json.Unmarshal(m.Value, &d)
+	if err != nil {
+		return err
+	}
+
+	conn, err := pgx.Connect(ctx, dburl)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(ctx)
+
+	ct, err := conn.Exec(ctx, sqlQuery,
+		uuid,
+		d.CreatedAt,
+		d.URL,
+		d.RegexpPattern,
+		d.RegexpMatch,
+		d.StatusCode,
+		d.TimeToFirstByte,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Rows affected: ", ct.RowsAffected())
+
+	return nil
 }
