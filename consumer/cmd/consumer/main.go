@@ -87,7 +87,7 @@ func run() {
 		MaxBytes: 10_000_000, // 10MB,
 	})
 
-	dburl := os.Getenv("GWW_DBURL")
+	dburl := os.Getenv("POSTGRES_DBURL")
 
 	c, err := NewConsumer(dburl)
 	if err != nil {

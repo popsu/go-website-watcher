@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+  producer:
+    image: ghcr.io/popsu/gww-producer:latest
+    restart: always
+    volumes:
+      - ./kafka_access.cert:/kafka_access.cert
+      - ./kafka_access.key:/kafka_access.key
+      - ./ca.pem:/ca.pem
+    environment:
+      KAFKA_SERVICE_URI: $KAFKA_SERVICE_URI
+      POSTGRES_DBURL: $POSTGRES_DBURL
+
+  consumer:
+    image: ghcr.io/popsu/gww-consumer:latest
+    restart: always
+    volumes:
+      - ./kafka_access.cert:/kafka_access.cert
+      - ./kafka_access.key:/kafka_access.key
+      - ./ca.pem:/ca.pem
+    environment:
+      KAFKA_SERVICE_URI: $KAFKA_SERVICE_URI
+      POSTGRES_DBURL: $POSTGRES_DBURL

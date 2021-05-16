@@ -3,9 +3,13 @@
 ca.pem
 kafka_access.cert
 kafka_access.key
+kafka_service_uri
+postgres_dburl
 
 # Normally you would commit this lock file also, but the terraform files in this
 # repository are just to show how to set this up in terraform
 .terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.backup
+
+bin/
