@@ -10,7 +10,6 @@ services:
       - ./ca.pem:/ca.pem
     environment:
       KAFKA_SERVICE_URI: $KAFKA_SERVICE_URI
-      POSTGRES_DBURL: $POSTGRES_DBURL
 
   consumer:
     image: ghcr.io/popsu/gww-consumer:latest
