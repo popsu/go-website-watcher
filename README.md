@@ -13,7 +13,9 @@
 
 ### Todo
 
-- [ ] Tests
-- [ ] CI
-- [ ] packages / program structure
 - [ ] Proper README
+- [ ] Tests
+- [ ] packages / program structure
+- [ ] Logging
+- [ ] CI
+- [ ] Add golangci-lint

@@ -1,14 +1,15 @@
 package model
 
 import (
+	"database/sql"
 	"time"
 )
 
 type Message struct {
-	CreatedAt       time.Time     `json:"created_at,omitempty"`
-	URL             string        `json:"url,omitempty"`
-	RegexpPattern   string        `json:"regexp_pattern,omitempty"`
-	RegexpMatch     bool          `json:"regexp_match,omitempty"`
-	StatusCode      int           `json:"status_code,omitempty"`
-	TimeToFirstByte time.Duration `json:"time_to_first_byte,omitempty"`
+	CreatedAt       time.Time      `json:"created_at,omitempty"`
+	URL             string         `json:"url,omitempty"`
+	RegexpPattern   sql.NullString `json:"regexp_pattern,omitempty"`
+	RegexpMatch     sql.NullBool   `json:"regexp_match,omitempty"`
+	StatusCode      sql.NullInt32  `json:"status_code,omitempty"`
+	TimeToFirstByte *time.Duration `json:"time_to_first_byte,omitempty"`
 }
