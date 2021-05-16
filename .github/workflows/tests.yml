@@ -1,11 +1,18 @@
 name: "CI tests"
 on: [push]
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      # gh runners don't have go 1.16, we need it for embed package
+      - name: install go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
 
       - name: Run test
         run: |
