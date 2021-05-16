@@ -15,7 +15,13 @@ run-producer: ## Run producer
 
 .PHONY: test
 test: ## Run tests
+# Use richgo if installed
+# https://github.com/kyoh86/richgo
+ifneq (, $(shell which richgo))
+	richgo test -race -cover -v ./...
+else
 	go test -race -cover ./...
+endif
 
 .PHONY: tools
 tools: ## Install required tools (go-migrate)

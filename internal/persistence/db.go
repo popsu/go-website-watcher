@@ -65,3 +65,17 @@ func (ps *PostgresStore) InsertMessage(msg *model.Message) error {
 
 	return nil
 }
+
+// Close closes the database connection
+func (ps *PostgresStore) Close() error {
+	if ps.db != nil {
+		err := ps.db.Close()
+		if err != nil {
+			return err
+		}
+
+		ps.logger.Println("DB connection closed")
+	}
+
+	return nil
+}
