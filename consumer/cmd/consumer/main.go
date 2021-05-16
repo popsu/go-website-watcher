@@ -8,14 +8,10 @@ import (
 	"os"
 	"time"
 
-	// sql query embedded from file
-	_ "embed"
-
 	"github.com/gofrs/uuid"
-	"github.com/jmoiron/sqlx"
 	gwwkafka "github.com/popsu/go-website-watcher/internal/kafka"
 	"github.com/popsu/go-website-watcher/internal/model"
-	"github.com/popsu/go-website-watcher/internal/psql"
+	"github.com/popsu/go-website-watcher/internal/persistence"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -31,54 +27,31 @@ var (
 	serviceURI = os.Getenv("KAFKA_SERVICE_URI")
 )
 
-//go:embed sql/insert.sql
-var sqlQuery string
-
 func main() {
 	run()
 }
 
 type Consumer struct {
-	db     *sqlx.DB
+	store  *persistence.PostgresStore
 	logger *log.Logger
 }
 
 func NewConsumer(dburl string) (*Consumer, error) {
-	db, err := psql.New(dburl)
+	logger := log.Default()
+
+	store, err := persistence.NewPostgresStore(dburl, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Consumer{
-		db:     db,
-		logger: log.Default(),
+		store:  store,
+		logger: logger,
 	}, nil
 }
 
 func (c *Consumer) writeToDBMsg(msg *model.Message) error {
-	log.Default()
-	ct, err := c.db.Exec(sqlQuery,
-		msg.ID,
-		msg.CreatedAt,
-		msg.URL,
-		msg.RegexpPattern,
-		msg.RegexpMatch,
-		msg.StatusCode,
-		msg.TimeToFirstByte,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	n, err := ct.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Rows affected: ", n)
-
-	return nil
+	return c.store.InsertMessage(msg)
 }
 
 func (c *Consumer) writeKafkaMessageToDB(m *kafka.Message) error {
