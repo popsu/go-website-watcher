@@ -1,5 +1,7 @@
 # Go website watcher
 
+![ci tests](https://github.com/popsu/go-website-watcher/actions/workflows/tests.yml/badge.svg)
+
 ## What
 
 System that monitors website availability and produces metrics that will be stored in PostgreSQL database. Uses Kafka as message broker.
