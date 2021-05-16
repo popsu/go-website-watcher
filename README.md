@@ -16,6 +16,6 @@
 - [ ] Proper README
 - [ ] Tests
 - [ ] packages / program structure
-- [ ] Logging
+- [ ] Add structured logging
 - [ ] CI
 - [ ] Add golangci-lint

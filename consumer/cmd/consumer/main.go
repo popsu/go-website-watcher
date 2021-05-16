@@ -12,9 +12,10 @@ import (
 	_ "embed"
 
 	"github.com/gofrs/uuid"
-	"github.com/jackc/pgx/v4"
+	"github.com/jmoiron/sqlx"
 	gwwkafka "github.com/popsu/go-website-watcher/internal/kafka"
 	"github.com/popsu/go-website-watcher/internal/model"
+	"github.com/popsu/go-website-watcher/internal/psql"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -37,6 +38,67 @@ func main() {
 	run()
 }
 
+type Consumer struct {
+	db     *sqlx.DB
+	logger *log.Logger
+}
+
+func NewConsumer(dburl string) (*Consumer, error) {
+	db, err := psql.New(dburl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Consumer{
+		db:     db,
+		logger: log.Default(),
+	}, nil
+}
+
+func (c *Consumer) writeToDBMsg(msg *model.Message) error {
+	log.Default()
+	ct, err := c.db.Exec(sqlQuery,
+		msg.ID,
+		msg.CreatedAt,
+		msg.URL,
+		msg.RegexpPattern,
+		msg.RegexpMatch,
+		msg.StatusCode,
+		msg.TimeToFirstByte,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	n, err := ct.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Rows affected: ", n)
+
+	return nil
+}
+
+func (c *Consumer) writeKafkaMessageToDB(m *kafka.Message) error {
+	msg := &model.Message{}
+
+	err := json.Unmarshal(m.Value, &msg)
+	if err != nil {
+		return err
+	}
+
+	uuid, err := uuid.FromString(string(m.Key))
+	if err != nil {
+		return err
+	}
+
+	msg.ID = uuid
+
+	return c.writeToDBMsg(msg)
+}
+
 func run() {
 	dialer, err := gwwkafka.NewDialer(accessCert, accessKey, caPem)
 	if err != nil {
@@ -52,6 +114,13 @@ func run() {
 		MaxBytes: 10_000_000, // 10MB,
 	})
 
+	dburl := os.Getenv("GWW_DBURL")
+
+	c, err := NewConsumer(dburl)
+	if err != nil {
+		log.Fatalf("Error: %s", err)
+	}
+
 	for {
 		time.Sleep(time.Second * 1)
 		fmt.Println("Polling for messages...")
@@ -65,51 +134,6 @@ func run() {
 		fmt.Printf("Message at topic: %v partition: %v offset: %v %s = %s\n",
 			m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
 
-		err = writeToDB(&m)
-		if err != nil {
-			log.Fatalf("Error: %s", err)
-		}
+		c.writeKafkaMessageToDB(&m)
 	}
-}
-
-func writeToDB(m *kafka.Message) error {
-	ctx := context.Background()
-
-	dburl := os.Getenv("GWW_DBURL")
-
-	uuid, err := uuid.FromString(string(m.Key))
-	if err != nil {
-		return err
-	}
-
-	d := model.Message{}
-
-	err = json.Unmarshal(m.Value, &d)
-	if err != nil {
-		return err
-	}
-
-	conn, err := pgx.Connect(ctx, dburl)
-	if err != nil {
-		return err
-	}
-	defer conn.Close(ctx)
-
-	ct, err := conn.Exec(ctx, sqlQuery,
-		uuid,
-		d.CreatedAt,
-		d.URL,
-		d.RegexpPattern,
-		d.RegexpMatch,
-		d.StatusCode,
-		d.TimeToFirstByte,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Rows affected: ", ct.RowsAffected())
-
-	return nil
 }
