@@ -1,7 +1,6 @@
 package persistence
 
 import (
-	"database/sql"
 	"errors"
 	"log"
 	"net/url"
@@ -140,14 +139,20 @@ func TestInsertMessage(t *testing.T) {
 		}
 
 		ttfb := (time.Duration)(200)
+		createdAt := time.Now()
+		url := "http://www.example.com"
+		rePattern := "testre123"
+		reMatch := true
+		statusCode := int32(200)
 
 		testMessage := &model.Message{
-			ID:              id,
-			CreatedAt:       time.Now(),
-			URL:             "http://www.example.com",
-			RegexpPattern:   sql.NullString{String: "testre123", Valid: true},
-			RegexpMatch:     sql.NullBool{Bool: true, Valid: true},
-			StatusCode:      sql.NullInt32{Int32: 200, Valid: true},
+			ID:              &id,
+			CreatedAt:       &createdAt,
+			URL:             &url,
+			Error:           nil,
+			RegexpPattern:   &rePattern,
+			RegexpMatch:     &reMatch,
+			StatusCode:      &statusCode,
 			TimeToFirstByte: &ttfb,
 		}
 

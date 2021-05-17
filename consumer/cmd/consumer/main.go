@@ -67,7 +67,7 @@ func (c *Consumer) writeKafkaMessageToDB(m *kafka.Message) error {
 		return err
 	}
 
-	msg.ID = uuid
+	msg.ID = &uuid
 
 	return c.writeToDBMsg(msg)
 }

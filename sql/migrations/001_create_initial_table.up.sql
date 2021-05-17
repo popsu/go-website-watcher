@@ -5,6 +5,7 @@ CREATE TABLE websitestatus(
     id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     url TEXT NOT NULL,
+    error TEXT,
     regexp_pattern TEXT,
     regexp_match BOOLEAN,
     status_code SMALLINT,

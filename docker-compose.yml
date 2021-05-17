@@ -5,9 +5,12 @@ services:
     image: ghcr.io/popsu/gww-producer:latest
     restart: always
     volumes:
+      # Secrets
       - ./kafka_access.cert:/kafka_access.cert
       - ./kafka_access.key:/kafka_access.key
       - ./ca.pem:/ca.pem
+      # Config
+      - ./website_config.txt:/website_config.txt
     environment:
       KAFKA_SERVICE_URI: $KAFKA_SERVICE_URI
 

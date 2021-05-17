@@ -5,6 +5,7 @@ resource "aiven_pg" "postgresql" {
   cloud_name   = "google-europe-north1"
   plan         = "hobbyist"
 
+  # Set this to true in production to avoid accidental deletions
   termination_protection = false
 }
 

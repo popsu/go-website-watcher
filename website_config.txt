@@ -1,0 +1,6 @@
+# Format is <URL><space><regexp>
+# Comment lines start with #
+https://www.google.com
+https://golang.org put"><noscript>Hello, 世界</
+https://www.hs.fi HS Digillä
+https://www.cnn.com this regexp should probably not match

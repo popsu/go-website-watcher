@@ -2,28 +2,23 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"regexp"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
-	"github.com/gofrs/uuid"
-	gwwkafka "github.com/popsu/go-website-watcher/internal/kafka"
-	"github.com/popsu/go-website-watcher/internal/model"
-	"github.com/segmentio/kafka-go"
-	"github.com/tcnksm/go-httpstat"
+	"github.com/popsu/go-website-watcher/producer"
 )
 
 const (
-	accessCert = "./kafka_access.cert"
-	accessKey  = "./kafka_access.key"
-	caPem      = "./ca.pem"
-	kafkaTopic = "go-website-watcher"
-	rePattern  = `put"><noscript>Hello, 世界</`
+	accessCert    = "./kafka_access.cert"
+	accessKey     = "./kafka_access.key"
+	caPem         = "./ca.pem"
+	kafkaTopic    = "go-website-watcher"
+	wsConfigFile  = "./website_config.txt"
+	checkInterval = 5 * time.Minute
 )
 
 var (
@@ -31,111 +26,66 @@ var (
 )
 
 func main() {
-	const websiteURL = "https://golang.org"
-
-	res, err := pingsite(websiteURL, rePattern)
+	wsConfig, err := producer.WebsiteConfigFromFile(wsConfigFile)
 	if err != nil {
-		log.Fatalf("Error: %s", err)
+		log.Fatalf("error reading config file %s", err)
 	}
 
-	message, err := json.Marshal(res)
+	logger := log.Default()
+
+	svc, err := producer.New(wsConfig, logger, accessCert, accessKey, caPem, kafkaTopic,
+		serviceURI, checkInterval)
+
 	if err != nil {
-		log.Fatalf("Error: %s", err)
+		log.Fatalf("error initializing producer: %s", err)
 	}
 
-	sendMessage(message)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go handleInterrupts(ctx, cancel, &wg, logger)
+
+	wg.Add(1)
+	go startProducer(ctx, cancel, &wg, svc, logger)
+
+	wg.Wait()
 }
 
-func pingsite(url, rePattern string) (*model.Message, error) {
-	// TODO Add context with timeout
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
+func handleInterrupts(ctx context.Context, cancel context.CancelFunc,
+	wg *sync.WaitGroup, logger *log.Logger) {
+	defer wg.Done()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case sig := <-c:
+			logger.Println("Signal received", sig)
+			cancel()
+		case <-ctx.Done():
+			logger.Println("Will not listen to signals anymore")
+			return
+		}
 	}
-
-	// https://github.com/tcnksm/go-httpstat/blob/e866bb2744199f5421f2d795b09dc184aac7adcc/_example/main.go
-	var result httpstat.Result
-	ctx := httpstat.WithHTTPStat(req.Context(), &result)
-	req = req.WithContext(ctx)
-
-	client := http.DefaultClient
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	res.Body.Close()
-
-	message := &model.Message{
-		CreatedAt: time.Now(),
-		URL:       url,
-		// TimeToFirstByte: result.StartTransfer / time.Millisecond,
-		// StatusCode:      res.StatusCode,
-	}
-
-	if rePattern != "" {
-		re := regexp.MustCompile(rePattern)
-		matchFound := re.Match(b)
-
-		message.RegexpPattern = sql.NullString{String: rePattern, Valid: true}
-		message.RegexpMatch = sql.NullBool{Bool: matchFound, Valid: true}
-	}
-
-	// TODO add only if we get the reply
-	if true {
-
-		ttfb := result.StartTransfer / time.Millisecond
-
-		message.TimeToFirstByte = &ttfb
-		message.StatusCode = sql.NullInt32{Int32: int32(res.StatusCode), Valid: true}
-	}
-
-	return message, nil
 }
 
-func sendMessage(message []byte) error {
-	dialer, err := gwwkafka.NewDialer(accessCert, accessKey, caPem)
+func startProducer(ctx context.Context, cancel context.CancelFunc,
+	wg *sync.WaitGroup, svc *producer.Service, logger *log.Logger) {
+	defer wg.Done()
+
+	go func() {
+		<-ctx.Done()
+		logger.Println("Shutting down producer")
+		svc.Stop()
+	}()
+
+	err := svc.Start(ctx)
 	if err != nil {
-		// log.Fatalf("Error initializing dialer :%s", err)
-		return err
+		logger.Println("Error: ", err)
+		cancel()
 	}
-
-	// producer
-	producer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{serviceURI},
-		Topic:   kafkaTopic,
-		Dialer:  dialer,
-	})
-
-	u, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
-
-	// the error returned is always nil
-	key, _ := u.MarshalText()
-
-	msg := kafka.Message{
-		Key:   key,
-		Value: message,
-	}
-
-	err = producer.WriteMessages(context.Background(), msg)
-	if err != nil {
-		// log.Fatalf("Error sending message: %s", err)
-		return err
-	}
-	log.Println("message sent successfully")
-
-	err = producer.Close()
-	if err != nil {
-		// log.Fatalf("Error closing producer: %s", err)
-		return err
-	}
-
-	return nil
 }

@@ -42,10 +42,12 @@ func NewPostgresStore(dburl string, logger *log.Logger) (*PostgresStore, error) 
 }
 
 func (ps *PostgresStore) InsertMessage(msg *model.Message) error {
+	println(msg.ID)
 	ct, err := ps.db.Exec(sqlInsertQuery,
 		msg.ID,
 		msg.CreatedAt,
 		msg.URL,
+		msg.Error,
 		msg.RegexpPattern,
 		msg.RegexpMatch,
 		msg.StatusCode,
