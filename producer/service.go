@@ -15,11 +15,10 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-
 type Service struct {
 	wsConfig      []WebsiteConfig
 	logger        *log.Logger
-	kafkaSvc      *kafka.Service
+	kafkaProducer *kafka.Producer
 	checkInterval time.Duration
 	stopMu        sync.Mutex
 	stop          bool
@@ -27,7 +26,7 @@ type Service struct {
 
 func New(wsConfig []WebsiteConfig, logger *log.Logger, accessCert, accessKey,
 	caPem, kafkaTopic, kafkaServiceURI string, checkInterval time.Duration) (*Service, error) {
-	kafkaSvc, err := kafka.New(accessCert, accessKey, caPem,
+	kafkaProducer, err := kafka.NewProducer(accessCert, accessKey, caPem,
 		kafkaServiceURI, kafkaTopic, logger)
 	if err != nil {
 		return nil, err
@@ -36,7 +35,7 @@ func New(wsConfig []WebsiteConfig, logger *log.Logger, accessCert, accessKey,
 	return &Service{
 		wsConfig:      wsConfig,
 		logger:        logger,
-		kafkaSvc:      kafkaSvc,
+		kafkaProducer: kafkaProducer,
 		checkInterval: checkInterval,
 		stop:          false,
 	}, nil
@@ -60,13 +59,15 @@ func (s *Service) Stop() {
 }
 
 func (s *Service) Close() {
-	s.kafkaSvc.Close()
+	s.kafkaProducer.Close()
 }
 
 func (s *Service) Start(ctx context.Context) error {
 	defer s.Close()
 
 	for {
+		// TODO add ticker so that we can shutdown gracefully without having to
+		// wait for the sleep at the end of this loop to end
 		if s.getStop() {
 			break
 		}
@@ -100,7 +101,7 @@ func (s *Service) checkAndSendSite(url, re string) error {
 		return err
 	}
 
-	s.kafkaSvc.SendMessage(message)
+	s.kafkaProducer.SendMessage(message)
 
 	return nil
 }

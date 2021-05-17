@@ -26,7 +26,7 @@ Consumes the messages from the Kafka topic and writes them into PostgreSQL datab
   | status_code        | SMALLINT    | HTTP status code of the response |
   | timetofirstbyte_ms | SMALLINT    | Time to first byte (TTFB) response time in milliseconds |
 
-Response over 30 seconds are considered as no response
+Response times over 30 seconds are considered as no response
 
 ## Requirements
 
@@ -48,7 +48,7 @@ Deploy with docker-compose. You will need some secrets:
 - Kafka Service URI (env value: `KAFKA_SERVICE_URI`)
 - PostgreSQL Service URI (env value: `POSTGRES_DBURL`)
 
-The configuration for which sites to check for is in [website_config.txt](./website_config.txt) file. Each line contains website URL, followed by space and optional regexp pattern.
+The configuration for list websites to check for is in [website_config.txt](./website_config.txt) file. Each line contains website URL, followed by space and optional regexp pattern to check whether the response body matches it.
 
 Check [docker-compose.yml file](./docker-compose.yml) to see which secret files and environment values are needed.
 
@@ -85,8 +85,9 @@ make test
 
 ## TODO
 
-- [ ] Refactor consumer
-- [ ] Fix the data race in producer (see https://github.com/tcnksm/go-httpstat/issues/21)
+- [ ] (Consumer) Do not ack Kafka message until it has been written successfully to the database
+- [ ] (Consumer) Read and write messages in batches instead of 1 by 1
+- [ ] (Producer) Fix the data race (see https://github.com/tcnksm/go-httpstat/issues/21)
 - [ ] Add proper flag parsing, some values are still hardcoded
 - [ ] Build docker images in CI
 - [ ] Add proper tests

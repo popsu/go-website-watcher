@@ -18,7 +18,7 @@ const (
 	caPem         = "./ca.pem"
 	kafkaTopic    = "go-website-watcher"
 	wsConfigFile  = "./website_config.txt"
-	checkInterval = 5 * time.Minute
+	checkInterval = 30 * time.Second
 )
 
 var (
@@ -79,7 +79,7 @@ func startProducer(ctx context.Context, cancel context.CancelFunc,
 
 	go func() {
 		<-ctx.Done()
-		logger.Println("Shutting down producer")
+		logger.Println("Gracefully shutting down producer")
 		svc.Stop()
 	}()
 
