@@ -20,6 +20,7 @@ func createMonthlyDates(start, end time.Time) []time.Time {
 	return t
 }
 
+// Run with `make generate-sql` from the root
 func main() {
 	templateFile := "sql/migrations/templates/001_create_initial_table.up.tmpl.sql"
 

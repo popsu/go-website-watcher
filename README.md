@@ -40,7 +40,7 @@ If you don't have Kafka and PostgreSQL available, check [Terraform README](./ter
 
 ## Usage
 
-Deploy with docker-compose. You will need some secrets:
+Deploy with docker-compose. You will need following secrets:
 
 - Kafka Access Key (file: `kafka_access.key`)
 - Kafka Access Certificate (file: `kafka_access.cert`)
@@ -48,7 +48,9 @@ Deploy with docker-compose. You will need some secrets:
 - Kafka Service URI (env value: `KAFKA_SERVICE_URI`)
 - PostgreSQL Service URI (env value: `POSTGRES_DBURL`)
 
-The configuration for list websites to check for is in [website_config.txt](./website_config.txt) file. Each line contains website URL, followed by space and optional regexp pattern to check whether the response body matches it.
+Kafka topic used is hardcoded to be `go-website-watcher`
+
+The configuration for list of websites to check for is in [website_config.txt](./website_config.txt) file. Each line contains website URL, followed by space and optional regexp pattern to check whether the response body matches it.
 
 Check [docker-compose.yml file](./docker-compose.yml) to see which secret files and environment values are needed.
 
@@ -88,6 +90,7 @@ make test
 - [ ] (Consumer) Do not ack Kafka message until it has been written successfully to the database
 - [ ] (Consumer) Read and write messages in batches instead of 1 by 1
 - [ ] (Producer) Fix the data race (see https://github.com/tcnksm/go-httpstat/issues/21)
+- [ ] Release v0.0.1
 - [ ] Add proper flag parsing, some values are still hardcoded
 - [ ] Build docker images in CI
 - [ ] Add proper tests

@@ -14,6 +14,7 @@ This module sets up Kafka and PostgreSQL in [Aiven](https://aiven.io/). If you d
 export TF_VAR_aiven_project_name="YOUR AIVEN PROJECT NAME"
 export TF_VAR_aiven_api_token="YOUR_AIVEN_API_TOKEN"
 
+terraform init
 terraform apply
 ```
 

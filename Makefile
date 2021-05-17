@@ -54,7 +54,11 @@ build-consumer: bin/dev/gww-consumer tidy ## Build consumer dev
 
 .PHONY: db-migrate-up
 db-migrate-up: ## Run db migrations up
+ifneq (, $(shell which migrate))
 	migrate -database ${POSTGRES_DBURL} -path ${MIGRATIONS_PATH} up
+else
+	@echo Requires go-migrate, install with "make tools" or from https://github.com/golang-migrate/migrate
+endif
 
 .PHONY: db-migrate-down
 db-migrate-down: ## Run db migrations down
