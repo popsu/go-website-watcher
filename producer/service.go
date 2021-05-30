@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/popsu/go-website-watcher/internal/kafka"
@@ -20,8 +19,8 @@ type Service struct {
 	logger        *log.Logger
 	kafkaProducer *kafka.Producer
 	checkInterval time.Duration
-	stopMu        sync.Mutex
-	stop          bool
+	done          chan bool
+	ticker        *time.Ticker
 }
 
 func New(wsConfig []WebsiteConfig, logger *log.Logger, accessCert, accessKey,
@@ -37,25 +36,13 @@ func New(wsConfig []WebsiteConfig, logger *log.Logger, accessCert, accessKey,
 		logger:        logger,
 		kafkaProducer: kafkaProducer,
 		checkInterval: checkInterval,
-		stop:          false,
 	}, nil
 }
 
-func (s *Service) setStop(v bool) {
-	s.stopMu.Lock()
-	s.stop = v
-	s.stopMu.Unlock()
-}
-
-func (s *Service) getStop() bool {
-	s.stopMu.Lock()
-	v := s.stop
-	s.stopMu.Unlock()
-	return v
-}
-
 func (s *Service) Stop() {
-	s.setStop(true)
+	s.done <- true
+	s.ticker.Stop()
+	s.logger.Println("Stop called on producer")
 }
 
 func (s *Service) Close() {
@@ -63,20 +50,20 @@ func (s *Service) Close() {
 }
 
 func (s *Service) Start(ctx context.Context) error {
+	s.done = make(chan bool)
+	s.ticker = time.NewTicker(s.checkInterval)
+
 	defer s.Close()
 
 	for {
-		// TODO add ticker so that we can shutdown gracefully without having to
-		// wait for the sleep at the end of this loop to end
-		if s.getStop() {
-			break
-		}
-
 		s.checkAllSites()
-		time.Sleep(s.checkInterval)
+		select {
+		case <-s.done:
+			return nil
+		case <-s.ticker.C:
+			continue
+		}
 	}
-
-	return nil
 }
 
 func (s *Service) checkAllSites() {
