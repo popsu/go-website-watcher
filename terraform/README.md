@@ -18,13 +18,14 @@ terraform init
 terraform apply
 ```
 
-We need some secrets for the Kafka and PostgreSQL. We can get most of these with Terraform, but Kafka CA Certificate has to be grabbed manually from the Aiven webconsole UI (go to your Kafka service and click Overview tab). The Terraform module didn't seem to have the option to get it (at least I couldn't find it):
+We need some secrets for the Kafka and PostgreSQL:
 
 ```bash
 # Kafka
 terraform output -raw kafka_access_key > kafka_access.key
 terraform output -raw kafka_access_cert > kafka_access.cert
 terraform output -raw kafka_service_uri > kafka_service_uri
+terraform output -raw project_ca_cert > ca.pem
 
 # PostgreSQL
 terraform output -raw postgresql_service_uri > postgres_dburl

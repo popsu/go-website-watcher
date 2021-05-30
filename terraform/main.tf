@@ -25,22 +25,7 @@ resource "aiven_kafka_topic" "go_website_watcher" {
   replication  = 3
 }
 
-output "postgresql_service_uri" {
-  value     = aiven_pg.postgresql.service_uri
-  sensitive = true
-}
-
-output "kafka_access_key" {
-  value     = aiven_kafka.kafka_service.kafka[0].access_key
-  sensitive = true
-}
-
-output "kafka_access_cert" {
-  value     = aiven_kafka.kafka_service.kafka[0].access_cert
-  sensitive = true
-}
-
-output "kafka_service_uri" {
-  value     = aiven_kafka.kafka_service.service_uri
-  sensitive = true
+# We need the project to get CA Cert that Kafka clients require
+data "aiven_project" "my_project" {
+  project = var.aiven_project_name
 }
