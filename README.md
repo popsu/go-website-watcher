@@ -65,7 +65,7 @@ docker-compose up
 
 Requirements:
 
-- [Go](https://golang.org/doc/install) 1.16+
+- [Go](https://golang.org/doc/install) 1.17+
 - [(go-)migrate](https://github.com/golang-migrate/migrate), install with `make tools`
 
 For Make help:
